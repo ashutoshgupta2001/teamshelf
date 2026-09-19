@@ -11,6 +11,7 @@
     "build": "node -e \"import('./src/bootstrap/create-api-app.js')\"",
     "migrate": "node src/infrastructure/database/migrate.js up",
     "migrate:undo": "node src/infrastructure/database/migrate.js down",
+    "seed:admin": "node src/commands/seed-initial-admin.js",
     "admin:create-bootstrap-invitation": "node src/commands/create-bootstrap-invitation.js",
     "test": "vitest run --exclude tests/integration/**",
     "test:integration": "vitest run tests/integration",

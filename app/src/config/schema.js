@@ -55,6 +55,25 @@ export const configSchema = {
       sensitive: true,
     },
   },
+  initialAdmin: {
+    email: { format: String, default: "", env: "INITIAL_ADMIN_EMAIL" },
+    password: {
+      format: String,
+      default: "",
+      env: "INITIAL_ADMIN_PASSWORD",
+      sensitive: true,
+    },
+    displayName: {
+      format: String,
+      default: "TeamShelf Admin",
+      env: "INITIAL_ADMIN_DISPLAY_NAME",
+    },
+    workspaceName: {
+      format: String,
+      default: "TeamShelf",
+      env: "INITIAL_ADMIN_WORKSPACE_NAME",
+    },
+  },
   google: {
     clientId: { format: String, default: "", env: "GOOGLE_CLIENT_ID" },
     clientSecret: {

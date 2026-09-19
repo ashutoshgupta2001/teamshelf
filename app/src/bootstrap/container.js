@@ -25,6 +25,7 @@ import { InvitationService } from "../modules/invitations/invitation.service.js"
 import { ItemService } from "../modules/items/item.service.js";
 import { DocumentService } from "../modules/documents/document.service.js";
 import { WorkerService } from "../modules/jobs/worker.service.js";
+import { BootstrapAdminService } from "../modules/bootstrap/bootstrap-admin.service.js";
 
 export function createContainer(overrides = {}) {
   const models = overrides.models || defineModels(sequelize);
@@ -150,6 +151,12 @@ export function createContainer(overrides = {}) {
     lockTimeoutSeconds: config.get("jobs.lockTimeoutSeconds"),
     trashRetentionDays: config.get("lifecycle.trashRetentionDays"),
   });
+  const bootstrapAdminService = new BootstrapAdminService({
+    sequelize,
+    authRepository,
+    workspaceService,
+    passwordHasher,
+  });
   return {
     config,
     logger,
@@ -174,6 +181,7 @@ export function createContainer(overrides = {}) {
       itemService,
       documentService,
       workerService,
+      bootstrapAdminService,
     },
   };
 }

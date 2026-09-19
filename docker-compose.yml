@@ -2,7 +2,7 @@ x-backend: &backend
   image: teamshelf-backend:local
   build:
     context: .
-    dockerfile: app/api/Dockerfile
+    dockerfile: app/Dockerfile
   env_file: .env
   environment:
     NODE_ENV: ${DOCKER_NODE_ENV:-development}
@@ -55,19 +55,27 @@ services:
 
   migrate:
     <<: *backend
-    command: ["node", "app/api/src/infrastructure/database/migrate.js", "up"]
+    command: ["node", "app/src/infrastructure/database/migrate.js", "up"]
     restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
 
+  seed:
+    <<: *backend
+    command: ["node", "app/src/commands/seed-initial-admin.js"]
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   api:
     <<: *backend
-    command: ["node", "app/api/src/api-server.js"]
+    command: ["node", "app/src/api-server.js"]
     ports: ["127.0.0.1:${API_HOST_PORT:-4000}:4000"]
     restart: unless-stopped
     depends_on:
-      migrate:
+      seed:
         condition: service_completed_successfully
     healthcheck:
       test:
@@ -84,10 +92,10 @@ services:
 
   worker:
     <<: *backend
-    command: ["node", "app/api/src/worker-server.js"]
+    command: ["node", "app/src/worker-server.js"]
     restart: unless-stopped
     depends_on:
-      migrate:
+      seed:
         condition: service_completed_successfully
 
   web:

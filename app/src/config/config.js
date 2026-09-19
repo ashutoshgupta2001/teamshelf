@@ -4,7 +4,7 @@ import convictFormatWithValidator from "convict-format-with-validator";
 import { fileURLToPath } from "node:url";
 import { configSchema } from "./schema.js";
 
-const rootEnvPath = fileURLToPath(new URL("../../../../.env", import.meta.url));
+const rootEnvPath = fileURLToPath(new URL("../../../.env", import.meta.url));
 dotenv.config({ path: rootEnvPath, quiet: true });
 convict.addFormats(convictFormatWithValidator);
 convict.addFormat({

@@ -3,7 +3,7 @@ FROM node:22-bookworm-slim AS build
 WORKDIR /workspace
 
 COPY package.json package-lock.json ./
-COPY app/api/package.json app/api/package.json
+COPY app/package.json app/package.json
 COPY web/package.json web/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 

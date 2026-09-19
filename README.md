@@ -11,11 +11,11 @@ cp .env.example .env
 npm install
 docker compose up -d postgres mailpit
 npm run migrate
-npm run admin:create-bootstrap-invitation -- --email owner@example.com
+npm run seed:admin
 npm run dev
 ```
 
-Open the invitation in Mailpit at <http://localhost:8025>, then open TeamShelf at <http://localhost:5173>. `npm run dev` starts the API, web client, and worker. For malware inspection, also start ClamAV:
+Set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` in `.env` before seeding, then sign in at <http://localhost:5173>. `npm run dev` starts the API, web client, and worker. For malware inspection, also start ClamAV:
 
 ```bash
 docker compose --profile scanning up -d clamav
@@ -34,11 +34,9 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Open TeamShelf at <http://localhost:8080> and Mailpit at <http://localhost:8025>. Then create the first invitation:
+The one-shot `seed` container runs after migrations and before the API and worker. It creates the configured initial user and an owned workspace, or safely skips the operation when that email already exists. Set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` in `.env`; the password must contain at least 12 characters. Existing credentials are never overwritten by subsequent starts.
 
-```bash
-docker compose exec api npm run admin:create-bootstrap-invitation --workspace @teamshelf/api -- --email owner@example.com
-```
+Open TeamShelf at <http://localhost:8080> and Mailpit at <http://localhost:8025>.
 
 To include malware scanning, start the stack with `docker compose --profile scanning up --build`. PostgreSQL and uploaded files use named volumes and survive `docker compose down`.
 
@@ -53,6 +51,7 @@ npm run dev:web         Vite on port 5173
 npm run dev:worker      PostgreSQL job worker
 npm run migrate         Apply all Sequelize migrations
 npm run migrate:undo    Revert the most recent migration
+npm run seed:admin      Idempotently create the configured initial owner
 npm test                Unit and component tests
 npm run test:integration  PostgreSQL integration tests
 npm run test:e2e        Playwright browser smoke tests
@@ -67,7 +66,7 @@ Integration tests use `DATABASE_URL`; point it at a dedicated, already-migrated 
 
 The repository is an npm-workspace monorepo:
 
-- `app/api`: API and worker entry points, capability-oriented services/repositories, infrastructure adapters, and migrations.
+- `app`: API and worker entry points, capability-oriented services/repositories, infrastructure adapters, and migrations.
 - `web`: React Router UI with TanStack Query server state and feature-specific API clients.
 - `packages/contracts`: shared Zod request schemas, constants, and normalization rules.
 

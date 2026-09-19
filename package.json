@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "app/api",
+    "app",
     "web",
     "packages/contracts"
   ],
@@ -16,6 +16,7 @@
     "build": "npm run build -w @teamshelf/contracts && npm run build -w @teamshelf/api && npm run build -w @teamshelf/web",
     "migrate": "npm run migrate -w @teamshelf/api",
     "migrate:undo": "npm run migrate:undo -w @teamshelf/api",
+    "seed:admin": "npm run seed:admin -w @teamshelf/api",
     "admin:create-bootstrap-invitation": "npm run admin:create-bootstrap-invitation -w @teamshelf/api --",
     "test": "npm run test -w @teamshelf/contracts && npm run test -w @teamshelf/api && npm run test -w @teamshelf/web",
     "test:integration": "npm run test:integration -w @teamshelf/api",

@@ -20,49 +20,52 @@ export class WorkspaceService {
     });
   }
   async create(userId, name, audit = {}) {
+    return this.sequelize.transaction((transaction) =>
+      this.createWithinTransaction(userId, name, audit, transaction),
+    );
+  }
+  async createWithinTransaction(userId, name, audit, transaction) {
     const prepared = prepareItemName(name);
-    return this.sequelize.transaction(async (transaction) => {
-      const workspace = await this.repository.create(
-        {
-          name: prepared.displayName,
-          ownerUserId: userId,
-          status: "ACTIVE",
-          storageUsedBytes: 0,
-        },
-        transaction,
-      );
-      const root = await this.itemRepository.create(
-        {
-          workspaceId: workspace.id,
-          parentItemId: null,
-          itemType: "ROOT",
-          displayName: prepared.displayName,
-          normalizedName: prepared.normalizedName,
-          createdBy: userId,
-        },
-        transaction,
-      );
-      workspace.rootItemId = root.id;
-      await this.repository.save(workspace, transaction);
-      await this.repository.createMembership(
-        { workspaceId: workspace.id, userId, joinedAt: this.clock.now() },
-        transaction,
-      );
-      await this.repository.audit(
-        {
-          workspaceId: workspace.id,
-          actorUserId: userId,
-          action: "WORKSPACE_CREATED",
-          targetType: "WORKSPACE",
-          targetId: workspace.id,
-          metadata: {},
-          occurredAt: this.clock.now(),
-          ...audit,
-        },
-        transaction,
-      );
-      return this.serialize(workspace);
-    });
+    const workspace = await this.repository.create(
+      {
+        name: prepared.displayName,
+        ownerUserId: userId,
+        status: "ACTIVE",
+        storageUsedBytes: 0,
+      },
+      transaction,
+    );
+    const root = await this.itemRepository.create(
+      {
+        workspaceId: workspace.id,
+        parentItemId: null,
+        itemType: "ROOT",
+        displayName: prepared.displayName,
+        normalizedName: prepared.normalizedName,
+        createdBy: userId,
+      },
+      transaction,
+    );
+    workspace.rootItemId = root.id;
+    await this.repository.save(workspace, transaction);
+    await this.repository.createMembership(
+      { workspaceId: workspace.id, userId, joinedAt: this.clock.now() },
+      transaction,
+    );
+    await this.repository.audit(
+      {
+        workspaceId: workspace.id,
+        actorUserId: userId,
+        action: "WORKSPACE_CREATED",
+        targetType: "WORKSPACE",
+        targetId: workspace.id,
+        metadata: {},
+        occurredAt: this.clock.now(),
+        ...audit,
+      },
+      transaction,
+    );
+    return this.serialize(workspace);
   }
   async list(userId) {
     const rows = await this.repository.listForUser(userId);
