@@ -8,6 +8,11 @@ function emailBody(message) {
       text: `You have been invited to ${data.workspaceName}. Accept the invitation: ${data.invitationUrl}`,
       html: `<p>You have been invited to <strong>${escapeHtml(data.workspaceName)}</strong>.</p><p><a href="${escapeHtml(data.invitationUrl)}">Accept invitation</a></p>`,
     };
+  if (message.templateName === "platform-invitation")
+    return {
+      text: `You have been invited to TeamShelf. Accept the invitation: ${data.invitationUrl}`,
+      html: `<p>You have been invited to TeamShelf.</p><p><a href="${escapeHtml(data.invitationUrl)}">Accept invitation</a></p>`,
+    };
   if (message.templateName === "password-reset")
     return {
       text: `Reset your password: ${data.resetUrl}`,

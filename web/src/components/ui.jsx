@@ -1,5 +1,5 @@
-import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Check, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 export function Spinner({ label = "Loading" }) {
   return (
@@ -31,6 +31,32 @@ export function Status({ value }) {
     <span className={`status status-${value.toLowerCase()}`}>
       {value.replaceAll("_", " ")}
     </span>
+  );
+}
+export function CopyButton({ value }) {
+  const [copied, setCopied] = useState(false);
+  const resetTimer = useRef(null);
+  useEffect(() => () => window.clearTimeout(resetTimer.current), []);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.clearTimeout(resetTimer.current);
+      resetTimer.current = window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      className={`button secondary copy-button${copied ? " copied" : ""}`}
+      onClick={copy}
+      aria-live="polite"
+    >
+      {copied && <Check size={16} aria-hidden="true" />}
+      {copied ? "Copied" : "Copy"}
+    </button>
   );
 }
 export function Modal({ title, open, onClose, children }) {

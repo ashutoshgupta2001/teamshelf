@@ -4,6 +4,7 @@ import {
   errorHandler,
   requestContext,
   requestLogging,
+  requireAdmin,
   requireAuth,
 } from "./middleware.js";
 
@@ -93,6 +94,28 @@ describe("HTTP request context", () => {
       expect.objectContaining({
         error: expect.objectContaining({ requestId: req.id }),
       }),
+    );
+  });
+});
+
+describe("platform administrator authorization", () => {
+  it("allows administrators and rejects regular users", () => {
+    const nextAdmin = vi.fn();
+    requireAdmin(
+      { auth: { user: { platformRole: "ADMIN" } } },
+      response(),
+      nextAdmin,
+    );
+    expect(nextAdmin).toHaveBeenCalledWith();
+
+    const nextUser = vi.fn();
+    requireAdmin(
+      { auth: { user: { platformRole: "USER" } } },
+      response(),
+      nextUser,
+    );
+    expect(nextUser).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "FORBIDDEN" }),
     );
   });
 });

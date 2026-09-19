@@ -15,6 +15,18 @@ convict.addFormat({
       throw new Error("must be a PostgreSQL URL");
   },
 });
+convict.addFormat({
+  name: "trust-proxy",
+  coerce(value) {
+    if (value === false || value === "false") return 0;
+    if (value === true || value === "true") return 1;
+    return Number(value);
+  },
+  validate(value) {
+    if (!Number.isInteger(value) || value < 0)
+      throw new Error("must be false or a non-negative proxy hop count");
+  },
+});
 const instance = convict(configSchema);
 instance.validate({ allowed: "strict" });
 

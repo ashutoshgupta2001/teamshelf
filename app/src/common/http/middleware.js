@@ -82,6 +82,12 @@ export function requireAuth(req, _res, next) {
   next();
 }
 
+export function requireAdmin(req, _res, next) {
+  captureRouteContext(req);
+  if (req.auth?.user?.platformRole !== "ADMIN") return next(errors.forbidden());
+  next();
+}
+
 export function requireCsrf(req, _res, next) {
   captureRouteContext(req);
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();

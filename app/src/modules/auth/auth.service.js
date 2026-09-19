@@ -1,4 +1,5 @@
 import { AppError } from "../../common/errors/app-error.js";
+import { resolveInvitationToken } from "../invitations/invitation-token.js";
 
 export class AuthService {
   constructor({
@@ -82,7 +83,7 @@ export class AuthService {
           profile.normalizedEmail,
           transaction,
         );
-        if (!invitationToken)
+        if (!user && !invitationToken)
           throw new AppError(
             "INVITATION_REQUIRED",
             "A valid invitation is required.",
@@ -126,21 +127,15 @@ export class AuthService {
     });
   }
   async acceptGoogleInvitation(profile, rawToken, existingUser, transaction) {
-    const hash = this.tokens.hash(rawToken);
     const now = this.clock.now();
-    const invitation = await this.invitationRepository.findActiveByTokenHash(
-      hash,
+    const { invitation, platform, bootstrap } = await resolveInvitationToken({
+      repository: this.invitationRepository,
+      tokens: this.tokens,
+      rawToken,
       now,
       transaction,
-    );
-    const bootstrap = invitation
-      ? null
-      : await this.invitationRepository.findBootstrapByTokenHash(
-          hash,
-          now,
-          transaction,
-        );
-    const target = invitation || bootstrap;
+    });
+    const target = invitation || platform || bootstrap;
     if (!target || target.normalizedEmail !== profile.normalizedEmail)
       throw new AppError(
         "INVITATION_INVALID",
@@ -148,6 +143,12 @@ export class AuthService {
         400,
       );
     let user = existingUser;
+    if (invitation && !user)
+      throw new AppError(
+        "INVITED_USER_UNAVAILABLE",
+        "The invited TeamShelf account is no longer available.",
+        409,
+      );
     if (!user)
       user = await this.authRepository.createUser(
         {
@@ -155,9 +156,16 @@ export class AuthService {
           normalizedEmail: profile.normalizedEmail,
           displayName: profile.displayName,
           status: "ACTIVE",
+          platformRole: bootstrap ? "ADMIN" : "USER",
         },
         transaction,
       );
+    if (bootstrap) {
+      if (user.platformRole !== "ADMIN") {
+        user.platformRole = "ADMIN";
+        await this.authRepository.save(user, transaction);
+      }
+    }
     if (invitation) {
       const membership = await this.workspaceRepository.findMembership(
         invitation.workspaceId,
@@ -325,6 +333,7 @@ export class AuthService {
       id: user.id,
       email: user.primaryEmail,
       displayName: user.displayName,
+      platformRole: user.platformRole,
     };
   }
 }

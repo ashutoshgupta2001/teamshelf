@@ -16,10 +16,46 @@ export class InvitationRepository {
       lock: transaction?.LOCK?.UPDATE,
     });
   }
+  findActiveById(id, now, transaction) {
+    return this.models.Invitation.findOne({
+      where: {
+        id,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { [Op.gt]: now },
+      },
+      transaction,
+      lock: transaction?.LOCK?.UPDATE,
+    });
+  }
   findBootstrapByTokenHash(tokenHash, now, transaction) {
     return this.models.BootstrapInvitation.findOne({
       where: {
         tokenHash,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { [Op.gt]: now },
+      },
+      transaction,
+      lock: transaction?.LOCK?.UPDATE,
+    });
+  }
+  findPlatformByTokenHash(tokenHash, now, transaction) {
+    return this.models.PlatformInvitation.findOne({
+      where: {
+        tokenHash,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { [Op.gt]: now },
+      },
+      transaction,
+      lock: transaction?.LOCK?.UPDATE,
+    });
+  }
+  findActivePlatformById(id, now, transaction) {
+    return this.models.PlatformInvitation.findOne({
+      where: {
+        id,
         acceptedAt: null,
         revokedAt: null,
         expiresAt: { [Op.gt]: now },
@@ -44,6 +80,23 @@ export class InvitationRepository {
   }
   createBootstrap(values, transaction) {
     return this.models.BootstrapInvitation.create(values, { transaction });
+  }
+  createPlatform(values, transaction) {
+    return this.models.PlatformInvitation.create(values, { transaction });
+  }
+  findPendingPlatform(normalizedEmail, transaction) {
+    return this.models.PlatformInvitation.findOne({
+      where: { normalizedEmail, acceptedAt: null, revokedAt: null },
+      transaction,
+    });
+  }
+  listPlatform() {
+    return this.models.PlatformInvitation.findAll({
+      order: [["createdAt", "DESC"]],
+    });
+  }
+  findPlatformById(id, transaction) {
+    return this.models.PlatformInvitation.findByPk(id, { transaction });
   }
   findPendingBootstrap(normalizedEmail, transaction) {
     return this.models.BootstrapInvitation.findOne({

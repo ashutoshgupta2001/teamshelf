@@ -79,10 +79,32 @@ export const invitationClient = {
       method: "POST",
       body: { email },
     }),
+  resend: (workspaceId, id) =>
+    apiRequest(`/workspaces/${workspaceId}/invitations/${id}/resend`, {
+      method: "POST",
+    }),
   revoke: (workspaceId, id) =>
     apiRequest(`/workspaces/${workspaceId}/invitations/${id}`, {
       method: "DELETE",
     }),
+};
+export const adminClient = {
+  users: () => apiRequest("/admin/users"),
+  updateRole: (userId, platformRole) =>
+    apiRequest(`/admin/users/${userId}/role`, {
+      method: "PATCH",
+      body: { platformRole },
+    }),
+  invitations: () => apiRequest("/admin/invitations"),
+  invite: (email) =>
+    apiRequest("/admin/invitations", {
+      method: "POST",
+      body: { email },
+    }),
+  resendInvitation: (id) =>
+    apiRequest(`/admin/invitations/${id}/resend`, { method: "POST" }),
+  revokeInvitation: (id) =>
+    apiRequest(`/admin/invitations/${id}`, { method: "DELETE" }),
 };
 export const workspaceClient = {
   list: () => apiRequest("/workspaces"),

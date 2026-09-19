@@ -38,6 +38,11 @@ export const invitationPasswordSchema = z.object({
 });
 export const createWorkspaceSchema = z.object({ name: itemNameSchema });
 export const createInvitationSchema = z.object({ email: emailSchema });
+export const platformRoleSchema = z.enum(["USER", "ADMIN"]);
+export const createPlatformInvitationSchema = z.object({ email: emailSchema });
+export const updatePlatformRoleSchema = z.object({
+  platformRole: platformRoleSchema,
+});
 export const createFolderSchema = z.object({
   parentItemId: uuidSchema,
   name: itemNameSchema,
@@ -89,6 +94,7 @@ export const DOCUMENT_STATUSES = Object.freeze({
   SCAN_FAILED: "SCAN_FAILED",
   DELETED: "DELETED",
 });
+export const PLATFORM_ROLES = Object.freeze({ USER: "USER", ADMIN: "ADMIN" });
 
 export function normalizeName(value) {
   return value.trim().normalize("NFKC").toLocaleLowerCase("en-US");

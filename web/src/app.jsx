@@ -15,6 +15,7 @@ import {
   WorkspacesPage,
 } from "./features/workspace-pages.jsx";
 import { PublicSharePage } from "./features/public-page.jsx";
+import { AdminPage } from "./features/admin-page.jsx";
 
 export function App() {
   return (
@@ -26,6 +27,7 @@ export function App() {
       <Route path="/s/:token" element={<PublicSharePage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/workspaces" element={<WorkspacesPage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/workspaces/:workspaceId" element={<WorkspaceLayout />}>
           <Route index element={<BrowserPage />} />
           <Route path="folders/:itemId" element={<BrowserPage />} />

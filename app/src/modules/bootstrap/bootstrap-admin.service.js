@@ -14,8 +14,13 @@ export class BootstrapAdminService {
         email,
         transaction,
       );
-      if (existingUser)
+      if (existingUser) {
+        if (existingUser.platformRole !== "ADMIN") {
+          existingUser.platformRole = "ADMIN";
+          await this.authRepository.save(existingUser, transaction);
+        }
         return { created: false, userId: existingUser.id, workspaceId: null };
+      }
 
       const user = await this.authRepository.createUser(
         {
@@ -23,6 +28,7 @@ export class BootstrapAdminService {
           normalizedEmail: email,
           displayName,
           status: "ACTIVE",
+          platformRole: "ADMIN",
         },
         transaction,
       );

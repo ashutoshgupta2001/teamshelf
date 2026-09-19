@@ -35,7 +35,7 @@ beforeAll(async () => {
   await container.sequelize
     .query(`TRUNCATE audit_events, outbox_events, jobs, email_delivery_attempts, email_messages, share_links,
     upload_sessions, documents, workspace_invitations, workspace_memberships, sessions, password_reset_tokens,
-    auth_identities, bootstrap_invitations, workspace_items, workspaces, users RESTART IDENTITY CASCADE`);
+    auth_identities, platform_invitations, bootstrap_invitations, workspace_items, workspaces, users RESTART IDENTITY CASCADE`);
 });
 afterAll(() => container.sequelize.close());
 

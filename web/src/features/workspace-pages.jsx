@@ -15,13 +15,21 @@ import {
   MoreHorizontal,
   Plus,
   Settings,
+  ShieldCheck,
   Trash2,
   Upload,
   Users,
   X,
 } from "lucide-react";
 import { useRef, useState } from "react";
-import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router";
+import {
+  Link,
+  Navigate,
+  NavLink,
+  Outlet,
+  useNavigate,
+  useParams,
+} from "react-router";
 import {
   authClient,
   documentClient,
@@ -30,6 +38,7 @@ import {
   workspaceClient,
 } from "../lib/api.js";
 import {
+  CopyButton,
   Empty,
   ErrorNotice,
   Modal,
@@ -49,15 +58,16 @@ export function ProtectedRoute() {
         <Spinner label="Opening your shelf…" />
       </main>
     );
+  if (session.error?.status === 401) return <Navigate to="/login" replace />;
   if (session.error)
     return (
       <main className="center-page">
         <div className="form-card compact">
-          <h1>Sign in required</h1>
-          <p>Your session has ended.</p>
-          <Link className="button primary" to="/login">
-            Go to sign in
-          </Link>
+          <h1>Unable to open TeamShelf</h1>
+          <ErrorNotice error={session.error} />
+          <button className="button primary" onClick={() => session.refetch()}>
+            Try again
+          </button>
         </div>
       </main>
     );
@@ -69,6 +79,10 @@ export function WorkspacesPage() {
     queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const session = useQuery({
+    queryKey: ["session"],
+    queryFn: authClient.session,
+  });
   const workspaces = useQuery({
     queryKey: ["workspaces"],
     queryFn: workspaceClient.list,
@@ -90,9 +104,16 @@ export function WorkspacesPage() {
         <Link className="brand" to="/workspaces">
           TeamShelf
         </Link>
-        <button className="button ghost" onClick={() => logout.mutate()}>
-          <LogOut size={17} /> Sign out
-        </button>
+        <div className="header-actions">
+          {session.data?.user.platformRole === "ADMIN" && (
+            <Link className="button secondary" to="/admin">
+              <ShieldCheck size={17} /> Administration
+            </Link>
+          )}
+          <button className="button ghost" onClick={() => logout.mutate()}>
+            <LogOut size={17} /> Sign out
+          </button>
+        </div>
       </header>
       <main>
         <div className="page-heading">
@@ -721,12 +742,7 @@ function ShareModal({ workspaceId, item, open, onClose }) {
             </p>
             <div className="copy-row">
               <input readOnly value={created.url} />
-              <button
-                className="button secondary"
-                onClick={() => navigator.clipboard.writeText(created.url)}
-              >
-                Copy
-              </button>
+              <CopyButton key={created.url} value={created.url} />
             </div>
           </>
         ) : (
@@ -837,6 +853,8 @@ export function MembersPage() {
   const { workspaceId } = useParams();
   const qc = useQueryClient();
   const [email, setEmail] = useState("");
+  const [activeTab, setActiveTab] = useState("users");
+  const [activeInvitation, setActiveInvitation] = useState(null);
   const session = useQuery({
     queryKey: ["session"],
     queryFn: authClient.session,
@@ -849,15 +867,38 @@ export function MembersPage() {
     queryKey: ["members", workspaceId],
     queryFn: () => workspaceClient.members(workspaceId),
   });
+  const canManage = workspace.data?.ownerUserId === session.data?.user.id;
   const invitations = useQuery({
     queryKey: ["invitations", workspaceId],
     queryFn: () => invitationClient.list(workspaceId),
+    enabled: canManage === true,
     retry: false,
   });
   const invite = useMutation({
     mutationFn: () => invitationClient.create(workspaceId, email),
-    onSuccess: () => {
+    onSuccess: (created) => {
       setEmail("");
+      setActiveInvitation(created);
+      qc.setQueryData(["invitations", workspaceId], (current = []) => [
+        created,
+        ...current.filter((invitation) => invitation.id !== created.id),
+      ]);
+      qc.invalidateQueries({ queryKey: ["invitations", workspaceId] });
+    },
+  });
+  const resend = useMutation({
+    mutationFn: (invitationId) =>
+      invitationClient.resend(workspaceId, invitationId),
+    onSuccess: (updated) => {
+      setActiveInvitation(updated);
+      qc.invalidateQueries({ queryKey: ["invitations", workspaceId] });
+    },
+  });
+  const revoke = useMutation({
+    mutationFn: (invitationId) =>
+      invitationClient.revoke(workspaceId, invitationId),
+    onSuccess: (_, invitationId) => {
+      if (activeInvitation?.id === invitationId) setActiveInvitation(null);
       qc.invalidateQueries({ queryKey: ["invitations", workspaceId] });
     },
   });
@@ -873,117 +914,210 @@ export function MembersPage() {
       qc.invalidateQueries({ queryKey: ["members", workspaceId] });
     },
   });
-  const canManage = workspace.data?.ownerUserId === session.data?.user.id;
+  const pendingInvitations =
+    invitations.data?.filter(
+      (invitation) => !invitation.acceptedAt && !invitation.revokedAt,
+    ) || [];
   return (
     <>
       <SimpleHeader title="People" />
       <main className="content narrow">
         <div className="title-row">
           <div>
-            <h1>People & invitations</h1>
+            <h1>Workspace access</h1>
             <p className="muted">
-              Workspace members can view every available document.
+              Owners can invite members, remove access, or hand over ownership.
             </p>
           </div>
         </div>
-        <section className="settings-card">
-          <h2>Invite someone</h2>
-          <form
-            className="inline-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              invite.mutate();
-            }}
+        <div className="people-tabs" role="tablist" aria-label="People">
+          <button
+            type="button"
+            role="tab"
+            id="users-tab"
+            aria-controls="users-panel"
+            aria-selected={activeTab === "users"}
+            onClick={() => setActiveTab("users")}
           >
-            <label className="field">
-              <span>Email address</span>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="colleague@company.com"
-              />
-            </label>
-            <button className="button primary">Send invitation</button>
-          </form>
-          {invite.error && <ErrorNotice error={invite.error} />}
-        </section>
-        <section className="settings-card">
-          <h2>Members</h2>
-          {members.isLoading ? (
-            <Spinner />
-          ) : (
-            members.data?.map((m) => (
-              <div className="person-row" key={m.id}>
-                <span className="avatar">
-                  {m.user.displayName.slice(0, 1).toUpperCase()}
-                </span>
-                <div>
-                  <strong>{m.user.displayName}</strong>
-                  <span>{m.user.primaryEmail}</span>
-                </div>
-                {m.user.id === workspace.data?.ownerUserId ? (
-                  <span className="role-label">Owner</span>
-                ) : (
-                  canManage && (
-                    <div className="person-actions">
-                      <button
-                        className="button ghost"
-                        onClick={() =>
-                          confirm(
-                            `Transfer ownership to ${m.user.displayName}?`,
-                          ) && transfer.mutate(m.user.id)
-                        }
-                      >
-                        Make owner
-                      </button>
-                      <button
-                        className="button ghost danger-text"
-                        onClick={() =>
-                          confirm(
-                            `Remove ${m.user.displayName} from this workspace?`,
-                          ) && removeMember.mutate(m.user.id)
-                        }
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  )
-                )}
-              </div>
-            ))
+            Members
+            <span>{members.data?.length || 0}</span>
+          </button>
+          {canManage && (
+            <button
+              type="button"
+              role="tab"
+              id="invitations-tab"
+              aria-controls="invitations-panel"
+              aria-selected={activeTab === "invitations"}
+              onClick={() => setActiveTab("invitations")}
+            >
+              Invitations
+              <span>{pendingInvitations.length}</span>
+            </button>
           )}
-        </section>
-        {invitations.data?.some((i) => !i.acceptedAt && !i.revokedAt) && (
-          <section className="settings-card">
-            <h2>Pending invitations</h2>
-            {invitations.data
-              .filter((i) => !i.acceptedAt && !i.revokedAt)
-              .map((i) => (
-                <div className="person-row" key={i.id}>
-                  <span className="avatar pending">@</span>
+        </div>
+
+        {activeTab === "users" && (
+          <section
+            className="settings-card people-panel"
+            role="tabpanel"
+            id="users-panel"
+            aria-labelledby="users-tab"
+          >
+            <h2>Workspace members</h2>
+            {members.isLoading ? (
+              <Spinner />
+            ) : (
+              members.data?.map((member) => (
+                <div className="person-row" key={member.id}>
+                  <span className="avatar">
+                    {member.user.displayName.slice(0, 1).toUpperCase()}
+                  </span>
                   <div>
-                    <strong>{i.email}</strong>
-                    <span>
-                      Expires {new Date(i.expiresAt).toLocaleDateString()}
-                    </span>
+                    <strong>{member.user.displayName}</strong>
+                    <span>{member.user.primaryEmail}</span>
                   </div>
-                  <button
-                    className="icon-button"
-                    onClick={() =>
-                      invitationClient.revoke(workspaceId, i.id).then(() =>
-                        qc.invalidateQueries({
-                          queryKey: ["invitations", workspaceId],
-                        }),
-                      )
-                    }
-                  >
-                    <X size={17} />
-                  </button>
+                  {member.user.id === workspace.data?.ownerUserId ? (
+                    <span className="role-label">Owner</span>
+                  ) : (
+                    canManage && (
+                      <div className="person-actions">
+                        <button
+                          className="button ghost"
+                          onClick={() =>
+                            confirm(
+                              `Transfer ownership to ${member.user.displayName}?`,
+                            ) && transfer.mutate(member.user.id)
+                          }
+                        >
+                          Make owner
+                        </button>
+                        <button
+                          className="button ghost danger-text"
+                          onClick={() =>
+                            confirm(
+                              `Remove ${member.user.displayName} from this workspace?`,
+                            ) && removeMember.mutate(member.user.id)
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )
+                  )}
                 </div>
-              ))}
+              ))
+            )}
           </section>
+        )}
+
+        {activeTab === "invitations" && canManage && (
+          <div
+            role="tabpanel"
+            id="invitations-panel"
+            aria-labelledby="invitations-tab"
+          >
+            <section className="settings-card people-panel">
+              <h2>Invite a workspace member</h2>
+              <p className="muted section-description">
+                Enter the email address of an existing TeamShelf user.
+              </p>
+              <form
+                className="inline-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  invite.mutate();
+                }}
+              >
+                <label className="field">
+                  <span>Email address</span>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="colleague@company.com"
+                  />
+                </label>
+                <button className="button primary" disabled={invite.isPending}>
+                  {invite.isPending ? "Sending…" : "Send invitation"}
+                </button>
+              </form>
+              {invite.error && <ErrorNotice error={invite.error} />}
+            </section>
+
+            <section className="settings-card people-panel">
+              <h2>Pending invitations</h2>
+              {invitations.isLoading ? (
+                <Spinner />
+              ) : invitations.error ? (
+                <ErrorNotice error={invitations.error} />
+              ) : pendingInvitations.length === 0 ? (
+                <p className="muted empty-list">No pending invitations.</p>
+              ) : (
+                pendingInvitations.map((invitation) => {
+                  const invitationUrl =
+                    activeInvitation?.id === invitation.id
+                      ? activeInvitation.url
+                      : invitation.url;
+                  return (
+                    <div
+                      className="person-row invitation-row"
+                      key={invitation.id}
+                    >
+                      <span className="avatar pending">@</span>
+                      <div className="invitation-details">
+                        <strong>{invitation.email}</strong>
+                        <span>
+                          Expires{" "}
+                          {new Date(invitation.expiresAt).toLocaleDateString()}
+                        </span>
+                        {invitationUrl && (
+                          <div className="copy-row invitation-copy">
+                            <input
+                              readOnly
+                              aria-label={`Invitation link for ${invitation.email}`}
+                              value={invitationUrl}
+                            />
+                            <CopyButton
+                              key={invitationUrl}
+                              value={invitationUrl}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="invitation-actions">
+                        <button
+                          type="button"
+                          className="button ghost"
+                          disabled={
+                            resend.isPending &&
+                            resend.variables === invitation.id
+                          }
+                          onClick={() => resend.mutate(invitation.id)}
+                        >
+                          {resend.isPending &&
+                          resend.variables === invitation.id
+                            ? "Sending…"
+                            : "Resend"}
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-button danger"
+                          aria-label={`Revoke invitation for ${invitation.email}`}
+                          onClick={() => revoke.mutate(invitation.id)}
+                        >
+                          <X size={17} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              {resend.error && <ErrorNotice error={resend.error} />}
+              {revoke.error && <ErrorNotice error={revoke.error} />}
+            </section>
+          </div>
         )}
       </main>
     </>

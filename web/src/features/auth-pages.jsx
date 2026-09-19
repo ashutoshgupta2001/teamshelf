@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -40,6 +40,11 @@ function Field({ label, error, ...input }) {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const completeLogin = (session) => {
+    queryClient.setQueryData(["session"], session);
+    navigate("/workspaces", { replace: true });
+  };
   const {
     register,
     handleSubmit,
@@ -47,11 +52,11 @@ export function LoginPage() {
   } = useForm({ resolver: zodResolver(loginSchema) });
   const login = useMutation({
     mutationFn: authClient.login,
-    onSuccess: () => navigate("/workspaces"),
+    onSuccess: completeLogin,
   });
   const google = useMutation({
     mutationFn: (credential) => authClient.google(credential),
-    onSuccess: () => navigate("/workspaces"),
+    onSuccess: completeLogin,
   });
   const handleGoogle = useCallback((value) => google.mutate(value), [google]);
   return (
@@ -104,6 +109,7 @@ export function LoginPage() {
 
 export function InvitePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [params] = useSearchParams();
   const [token] = useState(
     () => params.get("token") || sessionStorage.getItem("invitationToken"),
@@ -127,16 +133,18 @@ export function InvitePage() {
   } = useForm({ resolver: zodResolver(invitationPasswordSchema) });
   const accept = useMutation({
     mutationFn: (body) => invitationClient.acceptPassword(token, body),
-    onSuccess: () => {
+    onSuccess: (session) => {
       sessionStorage.removeItem("invitationToken");
-      navigate("/workspaces");
+      queryClient.setQueryData(["session"], session);
+      navigate("/workspaces", { replace: true });
     },
   });
   const google = useMutation({
     mutationFn: (credential) => authClient.google(credential, token),
-    onSuccess: () => {
+    onSuccess: (session) => {
       sessionStorage.removeItem("invitationToken");
-      navigate("/workspaces");
+      queryClient.setQueryData(["session"], session);
+      navigate("/workspaces", { replace: true });
     },
   });
   const handleGoogle = useCallback((value) => google.mutate(value), [google]);
@@ -162,7 +170,13 @@ export function InvitePage() {
             <div>
               <span className="eyebrow ink">Invitation for</span>
               <h2>{status.data.email}</h2>
-              <p className="muted">Choose how you'd like to join.</p>
+              <p className="muted">
+                {status.data.kind === "WORKSPACE"
+                  ? "Choose how you'd like to join this workspace."
+                  : status.data.kind === "BOOTSTRAP"
+                    ? "Create your TeamShelf administrator account."
+                    : "Create your TeamShelf user account."}
+              </p>
             </div>
             {accept.error && <ErrorNotice error={accept.error} />}
             <form onSubmit={handleSubmit((data) => accept.mutate(data))}>

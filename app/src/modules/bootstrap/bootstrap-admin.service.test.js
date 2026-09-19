@@ -7,6 +7,7 @@ function createSubject(existingUser = null) {
     findUserByEmail: vi.fn().mockResolvedValue(existingUser),
     createUser: vi.fn().mockResolvedValue({ id: "user-1" }),
     createIdentity: vi.fn().mockResolvedValue({ id: "identity-1" }),
+    save: vi.fn(),
   };
   const workspaceService = {
     createWithinTransaction: vi.fn().mockResolvedValue({ id: "workspace-1" }),
@@ -47,6 +48,12 @@ describe("BootstrapAdminService", () => {
     expect(subject.passwordHasher.hash).toHaveBeenCalledWith(
       "a-secure-password",
     );
+    expect(subject.authRepository.createUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        platformRole: "ADMIN",
+      }),
+      subject.transaction,
+    );
     expect(subject.authRepository.createIdentity).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: "user-1",
@@ -67,7 +74,8 @@ describe("BootstrapAdminService", () => {
   });
 
   it("does not change credentials when the configured user already exists", async () => {
-    const subject = createSubject({ id: "existing-user" });
+    const existingUser = { id: "existing-user", platformRole: "USER" };
+    const subject = createSubject(existingUser);
     const result = await subject.service.seed({
       email: "admin@example.com",
       password: "a-secure-password",
@@ -83,6 +91,11 @@ describe("BootstrapAdminService", () => {
     expect(subject.passwordHasher.hash).not.toHaveBeenCalled();
     expect(subject.authRepository.createUser).not.toHaveBeenCalled();
     expect(subject.authRepository.createIdentity).not.toHaveBeenCalled();
+    expect(existingUser.platformRole).toBe("ADMIN");
+    expect(subject.authRepository.save).toHaveBeenCalledWith(
+      existingUser,
+      subject.transaction,
+    );
     expect(
       subject.workspaceService.createWithinTransaction,
     ).not.toHaveBeenCalled();

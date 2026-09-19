@@ -8,7 +8,7 @@ COPY web/package.json web/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 
 RUN npm ci --omit=dev \
-    --workspace @teamshelf/api \
+    --workspace @teamshelf/app \
     --workspace @teamshelf/contracts \
     --include-workspace-root=false
 

@@ -392,6 +392,21 @@ h2 {
   margin: auto;
   padding: 80px 30px;
 }
+.admin-page > main {
+  max-width: 960px;
+}
+.admin-heading {
+  align-items: center;
+}
+.admin-mark {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--green-soft);
+  color: var(--green);
+}
 .page-heading {
   display: flex;
   align-items: flex-end;
@@ -797,6 +812,76 @@ h2 {
   display: flex;
   gap: 8px;
 }
+.copy-row input {
+  min-width: 0;
+  flex: 1;
+}
+.copy-row .copy-button {
+  min-width: 96px;
+}
+.button.secondary.copy-button.copied {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+.button.secondary.copy-button.copied:hover {
+  background: var(--green-dark);
+}
+.people-tabs {
+  display: flex;
+  gap: 28px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.people-tabs button {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px 13px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+.people-tabs button:after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: transparent;
+  content: "";
+}
+.people-tabs button[aria-selected="true"] {
+  color: var(--green);
+}
+.people-tabs button[aria-selected="true"]:after {
+  background: var(--green);
+}
+.people-tabs button > span {
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: #ebeae4;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-align: center;
+}
+.people-tabs button[aria-selected="true"] > span {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.people-panel {
+  animation: panel-in 0.16s ease-out;
+}
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
 .settings-card {
   padding: 26px;
   margin-bottom: 18px;
@@ -807,6 +892,10 @@ h2 {
 .settings-card h2 {
   font-family: "Newsreader", serif;
   font-size: 1.5rem;
+}
+.section-description {
+  margin: -5px 0 18px;
+  font-size: 0.84rem;
 }
 .inline-form {
   display: flex;
@@ -837,12 +926,44 @@ h2 {
   padding: 0 9px;
   font-size: 0.76rem;
 }
+.invitation-details {
+  min-width: 0;
+}
+.invitation-copy {
+  width: 100%;
+  max-width: 720px;
+  margin-top: 12px;
+}
+.invitation-copy input {
+  height: 42px;
+  background: #f8faf9;
+  font-size: 0.82rem;
+}
+.invitation-actions {
+  display: flex !important;
+  flex: initial !important;
+  align-items: center;
+}
+.invitation-actions .button {
+  min-height: 34px;
+  padding: 0 9px;
+  font-size: 0.76rem;
+}
+.empty-list {
+  margin: 6px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid #ebeae4;
+}
 .role-label {
   padding: 4px 8px;
   border-radius: 20px;
   background: var(--green-soft);
   color: var(--green) !important;
   font-weight: 700;
+}
+.role-label.admin {
+  background: #e7e5f3;
+  color: #4d467e !important;
 }
 .danger-text {
   color: var(--red) !important;
@@ -1090,6 +1211,23 @@ h2 {
   .inline-form {
     align-items: stretch;
     flex-direction: column;
+  }
+  .invitation-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .invitation-row .invitation-details {
+    width: calc(100% - 51px);
+  }
+  .invitation-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .invitation-copy {
+    flex-direction: column;
+  }
+  .invitation-copy .copy-button {
+    width: 100%;
   }
   .public-card {
     padding: 38px 22px;

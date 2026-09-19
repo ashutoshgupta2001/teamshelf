@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   createFolderSchema,
   createInvitationSchema,
+  createPlatformInvitationSchema,
   createShareLinkSchema,
   createUploadSchema,
   createWorkspaceSchema,
@@ -15,10 +16,12 @@ import {
   patchItemSchema,
   resetPasswordSchema,
   transferOwnershipSchema,
+  updatePlatformRoleSchema,
   uuidSchema,
 } from "@teamshelf/contracts";
 import {
   asyncHandler,
+  requireAdmin,
   requireAuth,
   validate,
 } from "../common/http/middleware.js";
@@ -29,6 +32,8 @@ const documentId = id.extend({ documentId: uuidSchema });
 const uploadId = id.extend({ uploadId: uuidSchema });
 const invitationId = id.extend({ invitationId: uuidSchema });
 const userId = id.extend({ userId: uuidSchema });
+const adminUserId = z.object({ userId: uuidSchema });
+const adminInvitationId = z.object({ invitationId: uuidSchema });
 const shareLinkId = id.extend({ shareLinkId: uuidSchema });
 const tokenParam = z.object({ token: z.string().min(32).max(2048) });
 const sensitiveLimiter = rateLimit({
@@ -78,6 +83,7 @@ export function createApiRouter(container) {
     invitationService,
     itemService,
     documentService,
+    userService,
   } = container.services;
   const cookieName = container.config.get("session.cookieName");
   const cookieOptions = {
@@ -158,6 +164,89 @@ export function createApiRouter(container) {
     send(res, {
       user: authService.publicUser(req.auth.user),
       csrfToken: req.auth.session.csrfToken,
+    }),
+  );
+
+  router.get(
+    "/admin/users",
+    requireAuth,
+    requireAdmin,
+    asyncHandler(async (req, res) =>
+      send(res, await userService.list(req.auth.user)),
+    ),
+  );
+  router.patch(
+    "/admin/users/:userId/role",
+    requireAuth,
+    requireAdmin,
+    validate({ params: adminUserId, body: updatePlatformRoleSchema }),
+    asyncHandler(async (req, res) => {
+      const user = await userService.updatePlatformRole(
+        req.auth.user,
+        req.params.userId,
+        req.body.platformRole,
+      );
+      logEvent(req, "admin.user_role_updated", {
+        targetUserId: user.id,
+        platformRole: user.platformRole,
+      });
+      send(res, user);
+    }),
+  );
+  router.get(
+    "/admin/invitations",
+    requireAuth,
+    requireAdmin,
+    asyncHandler(async (req, res) =>
+      send(res, await invitationService.listPlatform(req.auth.user)),
+    ),
+  );
+  router.post(
+    "/admin/invitations",
+    requireAuth,
+    requireAdmin,
+    validate({ body: createPlatformInvitationSchema }),
+    asyncHandler(async (req, res) => {
+      const invitation = await invitationService.createPlatform(
+        req.auth.user,
+        req.body.email,
+      );
+      logEvent(req, "admin.invitation_created", {
+        invitationId: invitation.id,
+      });
+      send(res, invitation, 201);
+    }),
+  );
+  router.post(
+    "/admin/invitations/:invitationId/resend",
+    requireAuth,
+    requireAdmin,
+    validate({ params: adminInvitationId }),
+    asyncHandler(async (req, res) => {
+      const invitation = await invitationService.resendPlatform(
+        req.auth.user,
+        req.params.invitationId,
+      );
+      logEvent(req, "admin.invitation_resent", {
+        invitationId: invitation.id,
+      });
+      send(res, invitation);
+    }),
+  );
+  router.delete(
+    "/admin/invitations/:invitationId",
+    requireAuth,
+    requireAdmin,
+    validate({ params: adminInvitationId }),
+    asyncHandler(async (req, res) => {
+      await invitationService.revokePlatform(
+        req.auth.user,
+        req.params.invitationId,
+      );
+      logEvent(req, "admin.invitation_revoked", {
+        invitationId: req.params.invitationId,
+      });
+      res.status(204).end();
     }),
   );
   router.post(

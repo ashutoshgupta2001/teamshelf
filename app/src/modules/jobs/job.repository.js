@@ -71,6 +71,17 @@ export class JobRepository {
           },
         },
       );
+    const [platformInvitationsExpired] =
+      await this.models.PlatformInvitation.update(
+        { revokedAt: now },
+        {
+          where: {
+            acceptedAt: null,
+            revokedAt: null,
+            expiresAt: { [Op.lte]: now },
+          },
+        },
+      );
     const [shareLinksExpired] = await this.models.ShareLink.update(
       { revokedAt: now },
       { where: { revokedAt: null, expiresAt: { [Op.lte]: now } } },
@@ -169,6 +180,7 @@ export class JobRepository {
     return {
       invitationsExpired,
       bootstrapInvitationsExpired,
+      platformInvitationsExpired,
       shareLinksExpired,
       uploadSessionsExpired,
       workspacesDeleted,

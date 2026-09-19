@@ -24,6 +24,11 @@ export function defineModels(sequelize) {
         allowNull: false,
         defaultValue: "ACTIVE",
       },
+      platformRole: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        defaultValue: "USER",
+      },
     },
     { tableName: "users" },
   );
@@ -75,6 +80,25 @@ export function defineModels(sequelize) {
       revokedAt: DataTypes.DATE,
     },
     { tableName: "bootstrap_invitations", updatedAt: false },
+  );
+  const PlatformInvitation = sequelize.define(
+    "PlatformInvitation",
+    {
+      ...common,
+      invitedEmail: { type: DataTypes.STRING(320), allowNull: false },
+      normalizedEmail: { type: DataTypes.STRING(320), allowNull: false },
+      tokenHash: { type: DataTypes.STRING(64), allowNull: false, unique: true },
+      platformRole: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        defaultValue: "USER",
+      },
+      invitedBy: { type: DataTypes.UUID, allowNull: false },
+      expiresAt: { type: DataTypes.DATE, allowNull: false },
+      acceptedAt: DataTypes.DATE,
+      revokedAt: DataTypes.DATE,
+    },
+    { tableName: "platform_invitations", updatedAt: false },
   );
   const Workspace = sequelize.define(
     "Workspace",
@@ -304,6 +328,7 @@ export function defineModels(sequelize) {
     Session,
     PasswordResetToken,
     BootstrapInvitation,
+    PlatformInvitation,
     Workspace,
     Membership,
     Invitation,

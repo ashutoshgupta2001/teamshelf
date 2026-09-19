@@ -6,6 +6,7 @@ export async function up({ context: queryInterface }) {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), primary_email VARCHAR(320) NOT NULL,
       normalized_email VARCHAR(320) NOT NULL UNIQUE, display_name VARCHAR(120) NOT NULL,
       status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','DISABLED')),
+      platform_role VARCHAR(20) NOT NULL DEFAULT 'USER' CHECK (platform_role IN ('USER','ADMIN')),
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
     CREATE TABLE auth_identities (
@@ -31,6 +32,16 @@ export async function up({ context: queryInterface }) {
       revoked_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
     CREATE UNIQUE INDEX bootstrap_invitation_pending_email_idx ON bootstrap_invitations(normalized_email)
+      WHERE accepted_at IS NULL AND revoked_at IS NULL;
+    CREATE TABLE platform_invitations (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invited_email VARCHAR(320) NOT NULL,
+      normalized_email VARCHAR(320) NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE,
+      platform_role VARCHAR(20) NOT NULL DEFAULT 'USER' CHECK (platform_role IN ('USER','ADMIN')),
+      invited_by UUID NOT NULL REFERENCES users(id), expires_at TIMESTAMPTZ NOT NULL,
+      accepted_at TIMESTAMPTZ, revoked_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE UNIQUE INDEX platform_invitation_pending_email_idx ON platform_invitations(normalized_email)
       WHERE accepted_at IS NULL AND revoked_at IS NULL;
     CREATE TABLE workspaces (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name VARCHAR(255) NOT NULL,
@@ -128,6 +139,6 @@ export async function down({ context: queryInterface }) {
       share_links, upload_sessions, documents CASCADE;
     ALTER TABLE workspaces DROP CONSTRAINT IF EXISTS workspaces_root_item_fk;
     DROP TABLE IF EXISTS workspace_items, workspace_invitations, workspace_memberships, workspaces,
-      bootstrap_invitations, password_reset_tokens, sessions, auth_identities, users CASCADE;
+      platform_invitations, bootstrap_invitations, password_reset_tokens, sessions, auth_identities, users CASCADE;
   `);
 }

@@ -18,6 +18,7 @@ import { WorkspaceRepository } from "../modules/workspaces/workspace.repository.
 import { ItemRepository } from "../modules/items/item.repository.js";
 import { DocumentRepository } from "../modules/documents/document.repository.js";
 import { JobRepository } from "../modules/jobs/job.repository.js";
+import { UserRepository } from "../modules/users/user.repository.js";
 import { WorkspacePolicy } from "../modules/workspaces/workspace.policy.js";
 import { AuthService } from "../modules/auth/auth.service.js";
 import { WorkspaceService } from "../modules/workspaces/workspace.service.js";
@@ -25,11 +26,13 @@ import { InvitationService } from "../modules/invitations/invitation.service.js"
 import { ItemService } from "../modules/items/item.service.js";
 import { DocumentService } from "../modules/documents/document.service.js";
 import { WorkerService } from "../modules/jobs/worker.service.js";
+import { UserService } from "../modules/users/user.service.js";
 import { BootstrapAdminService } from "../modules/bootstrap/bootstrap-admin.service.js";
 
 export function createContainer(overrides = {}) {
   const models = overrides.models || defineModels(sequelize);
-  const tokens = overrides.tokens || new CryptoTokenGenerator();
+  const tokens =
+    overrides.tokens || new CryptoTokenGenerator(config.get("session.secret"));
   const clock = overrides.clock || new SystemClock();
   const authRepository = new AuthRepository(models);
   const invitationRepository = new InvitationRepository(models);
@@ -37,6 +40,7 @@ export function createContainer(overrides = {}) {
   const itemRepository = new ItemRepository(models, sequelize);
   const documentRepository = new DocumentRepository(models);
   const jobRepository = new JobRepository(models, sequelize);
+  const userRepository = new UserRepository(models);
   const workspacePolicy = new WorkspacePolicy();
   const storageSettings = {
     rootPath: config.get("storage.localPath"),
@@ -151,6 +155,10 @@ export function createContainer(overrides = {}) {
     lockTimeoutSeconds: config.get("jobs.lockTimeoutSeconds"),
     trashRetentionDays: config.get("lifecycle.trashRetentionDays"),
   });
+  const userService = new UserService({
+    sequelize,
+    repository: userRepository,
+  });
   const bootstrapAdminService = new BootstrapAdminService({
     sequelize,
     authRepository,
@@ -173,6 +181,7 @@ export function createContainer(overrides = {}) {
       itemRepository,
       documentRepository,
       jobRepository,
+      userRepository,
     },
     services: {
       authService,
@@ -181,6 +190,7 @@ export function createContainer(overrides = {}) {
       itemService,
       documentService,
       workerService,
+      userService,
       bootstrapAdminService,
     },
   };

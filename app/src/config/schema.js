@@ -17,7 +17,7 @@ export const configSchema = {
       default: "http://localhost:5173",
       env: "WEB_BASE_URL",
     },
-    trustProxy: { format: Boolean, default: false, env: "TRUST_PROXY" },
+    trustProxy: { format: "trust-proxy", default: 0, env: "TRUST_PROXY" },
     logLevel: {
       format: ["fatal", "error", "warn", "info", "debug", "trace", "silent"],
       default: "info",
