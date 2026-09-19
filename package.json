@@ -9,7 +9,8 @@
     "packages/contracts"
   ],
   "scripts": {
-    "dev": "concurrently -n app,web,worker -c blue,magenta,yellow \"npm:dev:app\" \"npm:dev:web\" \"npm:dev:worker\"",
+    "dev": "npm run dev:prepare && concurrently -n app,web,worker -c blue,magenta,yellow \"npm:dev:app\" \"npm:dev:web\" \"npm:dev:worker\"",
+    "dev:prepare": "npm run migrate && npm run seed:admin",
     "dev:app": "npm run dev -w @teamshelf/app",
     "dev:web": "npm run dev -w @teamshelf/web",
     "dev:worker": "npm run dev:worker -w @teamshelf/app",

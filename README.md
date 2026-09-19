@@ -215,12 +215,12 @@ Use this workflow when developing the Node.js application outside containers. It
 test -f .env || cp .env.example .env
 npm install
 docker compose --profile scanning up -d postgres mailpit clamav
-npm run migrate
-npm run seed:admin
 npm run dev
 ```
 
 Open TeamShelf at <http://localhost:5173> and Mailpit at <http://localhost:8025>.
+
+`npm run dev` applies pending migrations and runs the idempotent initial-admin seed before starting the application, web client, and worker. You can still run `npm run migrate` or `npm run seed:admin` separately when needed.
 
 When using local Mailpit and ClamAV with this host-run workflow, set these values in `.env` because the Node.js processes connect through published host ports rather than Docker service names:
 
