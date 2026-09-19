@@ -1,0 +1,45 @@
+{
+  "name": "@teamshelf/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/api-server.js",
+    "dev:worker": "node --watch src/worker-server.js",
+    "start": "node src/api-server.js",
+    "start:worker": "node src/worker-server.js",
+    "build": "node -e \"import('./src/bootstrap/create-api-app.js')\"",
+    "migrate": "node src/infrastructure/database/migrate.js up",
+    "migrate:undo": "node src/infrastructure/database/migrate.js down",
+    "admin:create-bootstrap-invitation": "node src/commands/create-bootstrap-invitation.js",
+    "test": "vitest run --exclude tests/integration/**",
+    "test:integration": "vitest run tests/integration",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.17.0",
+    "@teamshelf/contracts": "0.1.0",
+    "argon2": "^0.44.0",
+    "convict": "^6.2.4",
+    "convict-format-with-validator": "^6.2.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "google-auth-library": "^10.3.0",
+    "helmet": "^8.1.0",
+    "nodemailer": "^10.0.10",
+    "pg": "^8.16.3",
+    "pino": "^9.9.4",
+    "pino-http": "^10.5.0",
+    "sequelize": "^6.37.7",
+    "umzug": "^3.8.2",
+    "yauzl": "^3.2.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.4",
+    "vitest": "^5.0.1"
+  }
+}

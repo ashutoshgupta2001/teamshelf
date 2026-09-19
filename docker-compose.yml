@@ -1,0 +1,108 @@
+x-backend: &backend
+  image: teamshelf-backend:local
+  build:
+    context: .
+    dockerfile: app/api/Dockerfile
+  env_file: .env
+  environment:
+    NODE_ENV: ${DOCKER_NODE_ENV:-development}
+    APP_HOST: 0.0.0.0
+    APP_PORT: 4000
+    APP_BASE_URL: ${PUBLIC_APP_URL:-http://localhost:8080}
+    WEB_BASE_URL: ${PUBLIC_APP_URL:-http://localhost:8080}
+    GOOGLE_REDIRECT_URI: ${PUBLIC_APP_URL:-http://localhost:8080}/api/v1/auth/google/callback
+    TRUST_PROXY: "true"
+    DATABASE_URL: postgres://teamshelf:teamshelf@postgres:5432/teamshelf
+    DATABASE_SSL: "false"
+    SMTP_HOST: mailpit
+    SMTP_PORT: 1025
+    SMTP_SECURE: "false"
+    SMTP_USERNAME: ""
+    SMTP_PASSWORD: ""
+    STORAGE_PROVIDER: local
+    LOCAL_STORAGE_PATH: /workspace/storage
+    CLAMAV_HOST: clamav
+    CLAMAV_PORT: 3310
+  volumes:
+    - teamshelf_storage:/workspace/storage
+  init: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: teamshelf
+      POSTGRES_PASSWORD: teamshelf
+      POSTGRES_DB: teamshelf
+    ports: ["127.0.0.1:${POSTGRES_PORT:-5432}:5432"]
+    volumes: [teamshelf_postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teamshelf"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+
+  clamav:
+    image: clamav/clamav:stable
+    ports: ["127.0.0.1:${CLAMAV_HOST_PORT:-3310}:3310"]
+    profiles: ["scanning"]
+
+  migrate:
+    <<: *backend
+    command: ["node", "app/api/src/infrastructure/database/migrate.js", "up"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *backend
+    command: ["node", "app/api/src/api-server.js"]
+    ports: ["127.0.0.1:${API_HOST_PORT:-4000}:4000"]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+
+  worker:
+    <<: *backend
+    command: ["node", "app/api/src/worker-server.js"]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    image: teamshelf-web:local
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    ports: ["${WEB_HOST_PORT:-8080}:80"]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  teamshelf_postgres:
+  teamshelf_storage:
