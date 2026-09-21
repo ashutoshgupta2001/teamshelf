@@ -1,4 +1,6 @@
-# TeamShelf System Design
+# TeamShelf System Design 
+
+# Agent working on this repository: Chatgpt/Codex 5.6 Sol
 
 ## 1. Document purpose
 
