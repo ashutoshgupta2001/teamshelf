@@ -2,6 +2,8 @@
 
 TeamShelf is an invite-only document workspace. It is a JavaScript modular monolith with an Express API and worker, a React client, PostgreSQL-backed sessions/jobs/outbox, private GCS support, and a local file adapter for development.
 
+For the complete architecture, security model, authorization rules, workflows, database design, API inventory, and operational decisions, see [design.md](./design.md).
+
 ## Run locally in five minutes with Docker
 
 The application runs entirely in containers, so Node.js and npm do not need to be installed on the host. These steps work with any Docker-compatible runtime that supports Docker Compose. This guide assumes Docker is already installed and running. The first run may take longer on a slow connection while container images are downloaded.
